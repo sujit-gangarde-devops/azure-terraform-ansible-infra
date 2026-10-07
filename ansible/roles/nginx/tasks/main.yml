@@ -1,0 +1,42 @@
+---
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Hide Nginx version in responses
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^\s*#?\s*server_tokens'
+    line: "\tserver_tokens off;"
+  notify: Reload nginx
+
+- name: Remove default site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Configure reverse proxy to Tomcat
+  ansible.builtin.template:
+    src: app.conf.j2
+    dest: /etc/nginx/sites-available/app.conf
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable app site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/app.conf
+    dest: /etc/nginx/sites-enabled/app.conf
+    state: link
+  notify: Reload nginx
+
+- name: Validate Nginx config
+  ansible.builtin.command: nginx -t
+  changed_when: false
+
+- name: Enable and start Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

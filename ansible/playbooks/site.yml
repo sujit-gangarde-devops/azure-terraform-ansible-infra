@@ -1,0 +1,26 @@
+---
+- name: Configure web tier (Nginx reverse proxy + Tomcat)
+  hosts: web
+  become: true
+  serial: 1   # one VM at a time, so the load balancer always has a healthy backend
+
+  roles:
+    - common
+    - tomcat
+    - nginx
+
+  post_tasks:
+    - name: Check the VM can reach the private MySQL server
+      ansible.builtin.wait_for:
+        host: "{{ mysql_host }}"
+        port: 3306
+        timeout: 15
+
+    - name: Check the app answers through Nginx
+      ansible.builtin.uri:
+        url: http://127.0.0.1/health
+        status_code: 200
+      register: health
+      retries: 6
+      delay: 5
+      until: health.status == 200

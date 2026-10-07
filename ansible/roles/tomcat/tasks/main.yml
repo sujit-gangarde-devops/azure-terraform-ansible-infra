@@ -1,0 +1,76 @@
+---
+- name: Install Java
+  ansible.builtin.apt:
+    name: "{{ tomcat_java_package }}"
+    state: present
+
+- name: Create tomcat system user
+  ansible.builtin.user:
+    name: "{{ tomcat_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ tomcat_home }}"
+    create_home: false
+
+- name: Download Tomcat (checksum verified)
+  ansible.builtin.get_url:
+    url: "{{ tomcat_download_url }}"
+    dest: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    checksum: "sha512:{{ tomcat_download_url }}.sha512"
+    mode: "0644"
+
+- name: Extract Tomcat
+  ansible.builtin.unarchive:
+    src: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    dest: "{{ tomcat_base_dir }}"
+    remote_src: true
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_user }}"
+    creates: "{{ tomcat_base_dir }}/apache-tomcat-{{ tomcat_version }}/bin/catalina.sh"
+
+- name: Point /opt/tomcat at the current version (makes upgrades a symlink switch)
+  ansible.builtin.file:
+    src: "{{ tomcat_base_dir }}/apache-tomcat-{{ tomcat_version }}"
+    dest: "{{ tomcat_home }}"
+    state: link
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_user }}"
+  notify: Restart tomcat
+
+- name: Remove default Tomcat web apps
+  ansible.builtin.file:
+    path: "{{ tomcat_home }}/webapps/{{ item }}"
+    state: absent
+  loop: "{{ tomcat_remove_webapps }}"
+
+- name: Listen on localhost only (Nginx is the only public entry point)
+  ansible.builtin.replace:
+    path: "{{ tomcat_home }}/conf/server.xml"
+    regexp: '<Connector port="8080" protocol="HTTP/1.1"'
+    replace: '<Connector port="8080" address="127.0.0.1" protocol="HTTP/1.1"'
+  notify: Restart tomcat
+
+- name: Deploy sample app pages
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "{{ tomcat_home }}/webapps/ROOT/{{ item }}"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_user }}"
+    mode: "0644"
+  loop:
+    - index.html
+    - health.html
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: tomcat.service.j2
+    dest: /etc/systemd/system/tomcat.service
+    mode: "0644"
+  notify: Restart tomcat
+
+- name: Enable and start Tomcat
+  ansible.builtin.systemd:
+    name: tomcat
+    state: started
+    enabled: true
+    daemon_reload: true

@@ -1,0 +1,10 @@
+---
+common_timezone: Asia/Kolkata
+common_packages:
+  - curl
+  - unzip
+  - htop
+  - net-tools
+  - ca-certificates
+  - mysql-client
+  - unattended-upgrades

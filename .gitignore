@@ -1,0 +1,13 @@
+.terraform/
+.terraform.lock.hcl.bak
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+backend.hcl
+tfplan
+tfplan.txt
+crash.log
+ansible/inventory/*.ini
+*.retry
+GUIDE_MARATHI.md

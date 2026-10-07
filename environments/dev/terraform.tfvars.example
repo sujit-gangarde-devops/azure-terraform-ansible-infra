@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is git-ignored.
+project     = "webapp"
+environment = "dev"
+location    = "centralindia"
+owner       = "sujit"
+
+# Find your public IP: curl ifconfig.me
+admin_source_cidrs = ["203.0.113.10/32"]
+
+vm_count = 2
+vm_size  = "Standard_B1s"
+
+# cat ~/.ssh/id_rsa.pub
+ssh_public_key = "ssh-rsa AAAA... you@laptop"
