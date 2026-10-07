@@ -10,4 +10,3 @@ tfplan.txt
 crash.log
 ansible/inventory/*.ini
 *.retry
-GUIDE_MARATHI.md
